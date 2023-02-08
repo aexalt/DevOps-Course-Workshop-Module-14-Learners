@@ -41,6 +41,9 @@ def index():
 def count():
     return { 'count': count_orders() }
 
+@app.route("/health")
+def count():
+    return { 200 }
 
 @app.route("/new", methods=["POST"])
 def new_order():

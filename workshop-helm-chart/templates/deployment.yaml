@@ -17,6 +17,35 @@ spec:
     spec:
       containers:
         - name: container-name
-          image: nginx
+          image: {{ .Values.image }}
+          resources:
+            requests:
+              memory: "0.5Gi"
+              cpu: "500m"
+            limits:
+              memory: "0.5Gi"
+              cpu: "500m"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 80
+            failureThreshold: 20
+            periodSeconds: 10
           ports:
           - containerPort: 80
+          env:
+          - name: DATABASE_NAME
+            value: "lv-21-andy-lee-tuffnel-order-processing-db"
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-pass
+                key: db-password
+          - name: DATABASE_USER
+            value: "dbadmin"
+          - name: FINANCE_PACKAGE_URL
+            value: "https://lv-21-andy-lee-tuffnel-finance-package-app.azurewebsites.net"
+          - name: DB_SERVER_NAME
+            value: "lv-21-andy-lee-tuffnel-order-processing-sqlserver.database.windows.net"
+      imagePullSecrets:
+        - name: acr-secret

@@ -17,6 +17,7 @@ Once it's installed, start it up and leave it running in the background.
 ### The Azure CLI
 
 1. Follow [this tutorial](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) to install the Azure CLI (`az`).
+ curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 2. Authenticate with your Azure account: open a terminal and run `az login`.
 3. Make sure you're running commands against the right subscription: run `az account set --subscription="SUBSCRIPTION_ID"`, replacing `SUBSCRIPTION_ID` with your Softwire Academy subscription ID.
 
@@ -29,7 +30,7 @@ Follow [this tutorial](https://kubernetes.io/docs/tasks/tools/) to install the K
 ### The Helm CLI
 
 Follow [this tutorial](https://helm.sh/docs/intro/install/) to install the Helm CLI (`helm`).
-
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 > If you are on Windows then the `./get_helm.sh` script won't work. So use Chocolatey if you have it. If you don't have Chocolatey, then download the [executable](https://github.com/helm/helm/releases), unzip it somewhere and add that folder to your PATH.
 
 ### A resource group
@@ -49,7 +50,7 @@ Now that we have a resource group, we can create a Kubernetes cluster inside it.
 We'll just create a single Node for now; we'll scale up the cluster later in the workshop.
 
 ```bash
-az aks create --resource-group myResourceGroup --name myAKSCluster --node-count 1 --node-vm-size standard_b2s --generate-ssh-keys
+az aks create --resource-group LV21_AndyLee-Tuffnell_ProjectExercise --name myAKSCluster --node-count 1 --node-vm-size standard_b2s --generate-ssh-keys
 ```
 
 > The `az aks create` command can take around 10 minutes to complete.
@@ -61,7 +62,7 @@ This command stores the necessary credentials in your `~/.kube/config` folder.
 `kubectl` will use these credentials when connecting to the Kubernetes API.
 
 ```bash
-az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+az aks get-credentials --resource-group LV21_AndyLee-Tuffnell_ProjectExercise --name myAKSCluster
 ```
 
 Let's use `kubectl` to check if our Node is up and running.
@@ -286,7 +287,7 @@ We'll now have a look at using images from container registries, to deploy a cop
 We'll start by using the Azure CLI to create a container registry, which will be hosted by Azure.
 
 ```bash
-az acr create --resource-group myResourceGroup --name myregistryname --sku Basic
+az acr create --resource-group LV21_AndyLee-Tuffnell_ProjectExercise --name altcrpr14 --sku Basic
 ```
 
 > The `myregistryname` that you pick must be unique within Azure (and should be lowercase).
@@ -297,6 +298,8 @@ This container registry is _private_, and will require credentials to access.
 
 The output of this command should include a `loginServer`.
 We'll need this information when pushing to the registry, so make a note of it.
+
+altcrpr14.azurecr.io
 
 > You can find more information about using container registries in the [Azure documentation](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-get-started-azure-cli).
 
@@ -320,19 +323,19 @@ Now that we have an image, we can push it to the registry.
 Let's log in to the registry:
 
 ```bash
-az acr login --name myregistryname
+az acr login --name altcrpr14.azurecr.io
 ```
 
 And then tag the image specifically for the registry:
 
 ```bash
-docker tag our-image-name:v1 <login-server>/our-image-name:v1
+docker tag our-image-name:v1 altcrpr14.azurecr.io/our-image-name:v1
 ```
 
 And finally, push the image to the registry:
 
 ```bash
-docker push <login-server>/our-image-name:v1
+docker push altcrpr14.azurecr.io/our-image-name:v1
 ```
 
 > Replace `<loginServer>` with the `loginServer` noted down when creating the registry.
@@ -366,13 +369,13 @@ However, we can use a Secret to give our cluster access to the registry, letting
 First, let's enable our registry's admin user so we can manage credentials:
 
 ```bash
-az acr update -n myregistryname --admin-enabled true
+az acr update -n altcrpr14 --admin-enabled true
 ```
 
 Next, let's retrieve some credentials that can be used to access the registry:
 
 ```bash
-LOGIN_SERVER=<loginServer> # `<loginServer>` should be replaced, as before
+LOGIN_SERVER=altcrpr14.azurecr.io # `<loginServer>` should be replaced, as before
 ACR_USERNAME=$(az acr credential show -n $LOGIN_SERVER --query="username" -o tsv)
 ACR_PASSWORD=$(az acr credential show -n $LOGIN_SERVER --query="passwords[0].value" -o tsv)
 ```
@@ -419,6 +422,11 @@ Inside there, find the order processing app service and look at its configuratio
 > Credentials like DB passwords should be stored as secrets.
 
 You may want to look at the docs on [environment variables](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/), [creating secrets](https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/) and [accessing secrets](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-environment-variables).
+
+kubectl create secret generic db-user-pass \
+    --from-literal=username=admin \
+    --from-literal=password='S!B\*d$zDsb='
+
 
 > Note that the value of an environment variable must be a string. YAML automatically determines the datatype of the value but you can force a value to be a string by wrapping it in quotes.
 
@@ -484,7 +492,7 @@ However, we can use a cluster autoscaler to automatically create more Nodes.
 
 ```bash
 az aks update \
-  --resource-group myResourceGroup \
+  --resource-group LV21_AndyLee-Tuffnell_ProjectExercise \
   --name myAKSCluster \
   --enable-cluster-autoscaler \
   --min-count 1 \
